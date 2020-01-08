@@ -49,7 +49,6 @@ Env
 
 To exit from your Environment input `exit`.
 
-
 ## License
 
 This file is licensed under the terms of the MIT license.

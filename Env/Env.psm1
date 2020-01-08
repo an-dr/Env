@@ -65,8 +65,12 @@ function Env-Init
     }
     New-Item -ItemType Directory -Path "$(Get-Location)\.environment" -ErrorAction SilentlyContinue
     New-Item -ItemType File -Path "$(Get-Location)\.environment\init.ps1"
-    $init_ps1_content = '$host.ui.RawUI.WindowTitle = $(Get-Item -Path $(Get-Location)).BaseName # WindowsTitle is CWD name
-    '
+    $init_ps1_content = @'
+# It is a basic Env template. For more information see: https://github.com/an-dr/Env
+
+$host.ui.RawUI.WindowTitle = $(Get-Item -Path $(Get-Location)).BaseName # WindowsTitle is CWD name
+'@
+copyright
     $init_ps1_path = "$(Get-Location)\.environment\init.ps1"
     Add-Content $init_ps1_path $init_ps1_content
 }
