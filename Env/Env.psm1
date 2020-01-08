@@ -70,7 +70,6 @@ function Env-Init
 
 $host.ui.RawUI.WindowTitle = $(Get-Item -Path $(Get-Location)).BaseName # WindowsTitle is CWD name
 '@
-copyright
     $init_ps1_path = "$(Get-Location)\.environment\init.ps1"
     Add-Content $init_ps1_path $init_ps1_content
 }
