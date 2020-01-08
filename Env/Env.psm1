@@ -18,40 +18,64 @@ PS > Env "some PS code to execute"   - Will create a new console, execute the co
 
 function EnvStart($code, $NoExit)
 {
-    if ($PSVersionTable.PSVersion.Major -gt 5) 
-    { $pwsh = "pwsh" } 
-    else 
+    if ($PSVersionTable.PSVersion.Major -gt 5)
+    { $pwsh = "pwsh" }
+    else
     { $pwsh = "powershell" }
 
     $start_args = @()
     $start_args += "-NoLogo"
 
     #adding a command key
-    if ($NoExit) 
-    { $start_args += "-NoExit", "-Command", "echo '`nPS Subprocess Started`n=====================`n';" }
+    if ($NoExit)
+    { $start_args += "-NoExit", "-Command", "echo '`nPS Subprocess with the Environment`n=============started==============`n';" }
     else
-    { $start_args += "-Command"}
+    { $start_args += "-Command" }
 
     #adding a command
     if ($code -and ($code) -ne "")
-    {  $start_args += $code  }
+    { $start_args += $code }
     Start-Process -NoNewWindow -Wait -FilePath $pwsh -ArgumentList $start_args
+    echo "`n=============closed=======env========`nPS Subprocess with the Environment`n"
 }
 
 function Env($code)
 {
     $env = Test-Path -Path "$(Get-Location)\.environment\*.ps1"
 
-    if ($env) 
+    if ($env)
     { $source_cmd = "Get-ChildItem `".\.environment\*.ps1`" | ForEach-Object { .`$_ }" }
     else
-    { $source_cmd = "" }
-    
+    { return }
+
     if ($code)
-    { EnvStart "$source_cmd; $code" -NoExit 0}
+    { EnvStart "$source_cmd; $code" -NoExit 0 }
     else
-    { EnvStart "$source_cmd" -NoExit 1}
-    
+    { EnvStart "$source_cmd" -NoExit 1 }
+
 }
 
-Export-ModuleMember -Function @('Env')
+function Env-Init
+{
+    $env = Test-Path -Path "$(Get-Location)\.environment\*.ps1"
+    if ($env)
+    {
+        Write-Output "./.environment folder is already has scripts";
+        return
+    }
+    New-Item -ItemType Directory -Path "$(Get-Location)\.environment" -ErrorAction SilentlyContinue
+    New-Item -ItemType File -Path "$(Get-Location)\.environment\init.ps1"
+    $init_ps1_content = '$host.ui.RawUI.WindowTitle = $(Get-Item -Path $(Get-Location)).BaseName # WindowsTitle is CWD name
+    '
+    $init_ps1_path = "$(Get-Location)\.environment\init.ps1"
+    Add-Content $init_ps1_path $init_ps1_content
+}
+
+function Env-Open {
+    Start-Process explorer -ArgumentList "$(Get-Location)\.environment"
+
+}
+
+Export-ModuleMember -Function 'Env'
+Export-ModuleMember -Function 'Env-Init'
+Export-ModuleMember -Function 'Env-Open'
