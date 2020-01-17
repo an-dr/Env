@@ -8,20 +8,31 @@ Calling Env at the folder with a .environment folder will create a new Powershel
 everything that exists at the .environment folder
 
 .Example
-
-.Example
 PS > Env  - Will create a new console at the same window
 
 PS > Env "some PS code to execute"   - Will create a new console, execute the code and exit
 
 #>
 
-function EnvStart($code, $NoExit)
+# =============================================================================
+# Private stuff
+# =============================================================================
+
+function Get-PS
 {
     if ($PSVersionTable.PSVersion.Major -gt 5)
-    { $pwsh = "pwsh" }
+    {
+        return "pwsh"
+    }
     else
-    { $pwsh = "powershell" }
+    {
+        return "powershell"
+    }
+}
+
+function EnvStart($code, $NoExit)
+{
+
 
     $start_args = @()
     $start_args += "-NoLogo"
@@ -35,23 +46,30 @@ function EnvStart($code, $NoExit)
     #adding a command
     if ($code -and ($code) -ne "")
     { $start_args += $code }
-    Start-Process -NoNewWindow -Wait -FilePath $pwsh -ArgumentList $start_args
+    Start-Process -NoNewWindow -Wait -FilePath $(Get-PS) -ArgumentList $start_args
     echo "`n=============closed=======env========`nPS Subprocess with the Environment`n"
 }
 
+$env_main_codeblock=@"
+Get-ChildItem `".\.environment\*.ps1`" | ForEach-Object { .`$_ };
+Set-Variable -Name "EnvRootDir" -Value $(Get-Location)
+"@
+# =============================================================================
+# Public
+# =============================================================================
 function Env($code)
 {
-    $env = Test-Path -Path "$(Get-Location)\.environment\*.ps1"
-
-    if ($env)
-    { $source_cmd = "Get-ChildItem `".\.environment\*.ps1`" | ForEach-Object { .`$_ }" }
-    else
-    { return }
+    $env = Test-Path -Path "$(Get-Location)\.environment\*.ps1" # TODO move this check into $env_main_codeblock
+    if (!$env) # TODO move this check into $env_main_codeblock
+    {
+        Write-Verbose "No environment found"
+        return
+    }
 
     if ($code)
-    { EnvStart "$source_cmd; $code" -NoExit 0 }
+    { EnvStart "$env_main_codeblock; $code" -NoExit 0 }
     else
-    { EnvStart "$source_cmd" -NoExit 1 }
+    { EnvStart "$env_main_codeblock" -NoExit 1 }
 
 }
 
@@ -74,7 +92,8 @@ $host.ui.RawUI.WindowTitle = $(Get-Item -Path $(Get-Location)).BaseName # Window
     Add-Content $init_ps1_path $init_ps1_content
 }
 
-function Env-Open {
+function Env-Open
+{
     Start-Process explorer -ArgumentList "$(Get-Location)\.environment"
 
 }
