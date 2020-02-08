@@ -3,7 +3,7 @@
 Creates a Powershell process with an environment with dot-sourced content from the .environment folder.
 
 .Description
-To use it create a folder caled .environment and fulfill by your content t oset up the environment.
+To use it create a folder caled .environment and fulfill by your content to setup the environment.
 Calling Env at the folder with a .environment folder will create a new Powershell process and dot source
 everything that exists at the .environment folder
 
@@ -15,24 +15,41 @@ PS > Env "some PS code to execute"   - Will create a new console, execute the co
 #>
 
 # =============================================================================
+# Imports
+# =============================================================================
+. $PSScriptRoot/strings.ps1
+
+
+# =============================================================================
 # Private stuff
 # =============================================================================
 
-function Get-PS
+function Get-PSExecName
 {
+
     if ($PSVersionTable.PSVersion.Major -gt 5)
     {
-        return "pwsh"
+        $ps_exe = "pwsh"
+        if ($IsWindows) { $ps_exe += ".exe" }
     }
-    else
-    {
-        return "powershell"
-    }
+    else { $ps_exe = "powershell.exe" }
+    return $ps_exe
 }
 
-function EnvStart($code, $NoExit)
+function EnvStart
 {
+    param(
+        [parameter(Mandatory = $false)]
+        [String]$Code,
 
+        [parameter(Mandatory = $false)]
+        [String]$Path,
+
+        [parameter(Mandatory = $false)]
+        [Switch]$NoExit
+    )
+
+    if (!$Path) { $Path = $(Get-Location) }
 
     $start_args = @()
     $start_args += "-NoLogo"
@@ -44,60 +61,81 @@ function EnvStart($code, $NoExit)
     { $start_args += "-Command" }
 
     #adding a command
-    if ($code -and ($code) -ne "")
-    { $start_args += $code }
-    Start-Process -NoNewWindow -Wait -FilePath $(Get-PS) -ArgumentList $start_args
-    echo "`n=============closed=======env========`nPS Subprocess with the Environment`n"
+    if ($Code -and ($Code) -ne "")
+    { $start_args += $Code }
+    Start-Process -NoNewWindow -Wait -FilePath $(Get-PSExecName) -ArgumentList $start_args -WorkingDirectory $Path
+    echo "`n=============closed===============`nPS Subprocess with the Environment`n"
 }
 
-$env_main_codeblock=@"
-Get-ChildItem `".\.environment\*.ps1`" | ForEach-Object { .`$_ };
-Set-Variable -Name "EnvRootDir" -Value $(Get-Location)
-"@
+
 # =============================================================================
 # Public
 # =============================================================================
-function Env($code)
+
+
+
+function Env
 {
-    $env = Test-Path -Path "$(Get-Location)\.environment\*.ps1" # TODO move this check into $env_main_codeblock
+    param(
+        [parameter(Mandatory = $false)]
+        [String]$Code,
+
+        [parameter(Mandatory = $false)]
+        [String]$Path
+
+    )
+    if (!$Path) { $Path = $(Get-Location) }
+    $env = Test-Path -Path "$Path\$EnvDirName\*.ps1" # TODO move this check into $env_main_codeblock
     if (!$env) # TODO move this check into $env_main_codeblock
     {
         Write-Verbose "No environment found"
         return
     }
 
-    if ($code)
-    { EnvStart "$env_main_codeblock; $code" -NoExit 0 }
+    if ($Code)
+    { EnvStart  -Path $Path -Code "$env_std_funcs; $env_main_codeblock; $Code" }
     else
-    { EnvStart "$env_main_codeblock" -NoExit 1 }
+    { EnvStart  -Path $Path -Code "$env_std_funcs; $env_main_codeblock" -NoExit }
 
+}
+
+function Global:Env-Load
+{
+    # $env = Test-Path -Path "$(Get-Location)\$EnvDirName\*.ps1" # TODO move this check into $env_main_codeblock
+    # if (!$env) # TODO move this check into $env_main_codeblock
+    # {
+    #     Write-Verbose "No environment found"
+    #     return
+    # }
+    Write-Output "Not implemented yet, WIP"; return
+    Get-ChildItem ".\$EnvDirName\*.ps1" | ForEach-Object { . $_ }
+    echo $apps2close
+    Write-Output "Environment was loaded!"
+
+}
+
+function Env-Backup ($BackupDir)
+{
+    Write-Output "Not implemented yet"
 }
 
 function Env-Init
 {
-    $env = Test-Path -Path "$(Get-Location)\.environment\*.ps1"
+    $env = Test-Path -Path "$(Get-Location)\$EnvDirName\*.ps1"
     if ($env)
     {
-        Write-Output "./.environment folder is already has scripts";
+        Write-Output "./$EnvDirName folder is already has scripts";
         return
     }
-    New-Item -ItemType Directory -Path "$(Get-Location)\.environment" -ErrorAction SilentlyContinue
-    New-Item -ItemType File -Path "$(Get-Location)\.environment\init.ps1"
-    $init_ps1_content = @'
-# It is a basic Env template. For more information see: https://github.com/an-dr/Env
-
-$host.ui.RawUI.WindowTitle = $(Get-Item -Path $(Get-Location)).BaseName # WindowsTitle is CWD name
-'@
-    $init_ps1_path = "$(Get-Location)\.environment\init.ps1"
+    New-Item -ItemType Directory -Path "$(Get-Location)\$EnvDirName" -ErrorAction SilentlyContinue
+    New-Item -ItemType File -Path "$(Get-Location)\$EnvDirName\init.ps1"
+    $init_ps1_path = "$(Get-Location)\$EnvDirName\init.ps1"
+    $init_ps1_content = Get-Content $PSScriptRoot/scripts/init.ps1 -Raw
     Add-Content $init_ps1_path $init_ps1_content
 }
 
 function Env-Open
 {
-    Start-Process explorer -ArgumentList "$(Get-Location)\.environment"
-
+    Start-Process explorer -ArgumentList "$(Get-Location)\$EnvDirName"
 }
 
-Export-ModuleMember -Function 'Env'
-Export-ModuleMember -Function 'Env-Init'
-Export-ModuleMember -Function 'Env-Open'
