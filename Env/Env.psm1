@@ -93,9 +93,9 @@ function Env
     }
 
     if ($Code)
-    { EnvStart  -Path $Path -Code "$env_std_funcs; $env_main_codeblock; $Code" }
+    { EnvStart  -Path $Path -Code "$env_main_codeblock; $Code" }
     else
-    { EnvStart  -Path $Path -Code "$env_std_funcs; $env_main_codeblock" -NoExit }
+    { EnvStart  -Path $Path -Code "$env_main_codeblock" -NoExit }
 
 }
 
