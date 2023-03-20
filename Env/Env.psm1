@@ -86,10 +86,19 @@ function Env
     )
     if (!$Path) { $Path = $(Get-Location) }
     $env = Test-Path -Path "$Path\$EnvDirName\*.ps1" # TODO move this check into $env_main_codeblock
+    "Check: $(Get-Location)"
     if (!$env) # TODO move this check into $env_main_codeblock
     {
-        Write-Verbose "No environment found"
-        return
+        if ("$(Get-Location)" -eq "$($(Get-Location).Drive.Root)"){
+            # PWD is root
+            Write-Verbose "No environment found"
+            return
+        } else {
+            cd ..
+            # echo "$(Join-Path $(Get-Location) "")"
+            "No environment. Check next: $(Get-Location)"
+            Env -Code $Code -Path $Path
+        }
     }
 
     if ($Code)
