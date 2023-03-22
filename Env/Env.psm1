@@ -56,7 +56,7 @@ function EnvStart
 
     #adding a command key
     if ($NoExit)
-    { $start_args += "-NoExit", "-Command", "echo '`nPS Subprocess with the Environment`n=============started==============`n';" }
+    { $start_args += "-NoExit", "-Command", "'`n> PS Subprocess with the Environment`n> =============started==============`n';" }
     else
     { $start_args += "-Command" }
 
@@ -64,7 +64,7 @@ function EnvStart
     if ($Code -and ($Code) -ne "")
     { $start_args += $Code }
     Start-Process -NoNewWindow -Wait -FilePath $(Get-PSExecName) -ArgumentList $start_args -WorkingDirectory $Path
-    echo "`n=============closed===============`nPS Subprocess with the Environment`n"
+    "`n> =============closed===============`n> PS Subprocess with the Environment`n"
 }
 
 
@@ -72,9 +72,7 @@ function EnvStart
 # Public
 # =============================================================================
 
-
-
-function Env
+function Enable-Environment
 {
     param(
         [parameter(Mandatory = $false)]
@@ -85,6 +83,8 @@ function Env
 
     )
     if (!$Path) { $Path = $(Get-Location) }
+    $global:PSENV_NAME = Split-Path $Path -Leaf
+    $global:PSENV_ENABLED = $true
     $env = Test-Path -Path "$Path\$EnvDirName\*.ps1" # TODO move this check into $env_main_codeblock
     "Check: $(Get-Location)"
     if (!$env) # TODO move this check into $env_main_codeblock
@@ -105,7 +105,15 @@ function Env
     { EnvStart  -Path $Path -Code "$env_main_codeblock; $Code" }
     else
     { EnvStart  -Path $Path -Code "$env_main_codeblock" -NoExit }
+}
 
+New-Alias -Name eenv -Value Enable-Environment
+
+function Disable-Environment{
+    if($global:PSENV_NAME -and $global:PSENV_ENABLED)
+    {
+        exit
+    }
 }
 
 function Global:Env-Load
@@ -120,20 +128,14 @@ function Global:Env-Load
     Get-ChildItem ".\$EnvDirName\*.ps1" | ForEach-Object { . $_ }
     echo $apps2close
     Write-Output "Environment was loaded!"
-
 }
 
-function Env-Backup ($BackupDir)
-{
-    Write-Output "Not implemented yet"
-}
-
-function Env-Init
+function New-Environment
 {
     $env = Test-Path -Path "$(Get-Location)\$EnvDirName\*.ps1"
     if ($env)
     {
-        Write-Output "./$EnvDirName folder is already has scripts";
+        Write-Output "Already created an environment in $PWD/$EnvDirName".Replace("`\", "`/")
         return
     }
     New-Item -ItemType Directory -Path "$(Get-Location)\$EnvDirName" -ErrorAction SilentlyContinue
@@ -142,9 +144,3 @@ function Env-Init
     $init_ps1_content = Get-Content $PSScriptRoot/scripts/init.ps1 -Raw
     Add-Content $init_ps1_path $init_ps1_content
 }
-
-function Env-Open
-{
-    Start-Process explorer -ArgumentList "$(Get-Location)\$EnvDirName"
-}
-

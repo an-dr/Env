@@ -1,4 +1,4 @@
-$EnvDirName = ".environment"
+$EnvDirName = ".psenv"
 
 
 $env_main_codeblock = @"
