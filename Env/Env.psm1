@@ -17,6 +17,21 @@ PS > Env "some PS code to execute"   - Will create a new console, execute the co
 # Imports
 . $PSScriptRoot/strings.ps1
 
+function Find-Environment($Path)
+{
+    if(!$Path){ $Path = Get-Location}
+    $dirs = Get-ChildItem -Path $Path -Directory
+    foreach ($dir in $dirs) {
+        $dir_name =  $dir.Name
+        if (Test-Path "$dir/$dir_name.psm1")
+        {
+            return $dir
+        } else {
+            "Not found"
+            return $null
+        }
+    }
+}
 
 function Find-DefaultEnvironment 
 {
