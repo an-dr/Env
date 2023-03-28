@@ -76,14 +76,11 @@ function Enable-Environment
 {
     param(
         [parameter(Mandatory = $false)]
-        [String]$Code,
-
-        [parameter(Mandatory = $false)]
         [String]$Path
 
     )
-    if (!$Path) { $Path = $(Get-Location) }
-    $env = Test-Path -Path "$Path\$EnvDirName\*.ps1" # TODO move this check into $env_main_codeblock
+    if (!$Path) { $Path = "$(Get-Location)/$EnvDirName" }
+    $env = Test-Path -Path "$Path\$EnvDirName\$EnvDirName.ps1" # TODO move this check into $env_main_codeblock
     "Check: $(Get-Location)"
     if (!$env) # TODO move this check into $env_main_codeblock
     {
@@ -95,14 +92,10 @@ function Enable-Environment
             cd ..
             # echo "$(Join-Path $(Get-Location) "")"
             "No environment. Check next: $(Get-Location)"
-            Env -Code $Code -Path $Path
         }
     }
 
-    if ($Code)
-    { EnvStart  -Path $Path -Code "$env_main_codeblock; $Code" }
-    else
-    { EnvStart  -Path $Path -Code "$env_main_codeblock" -NoExit }
+    EnvStart  -Path $Path -Code "$env_main_codeblock" -NoExit
 }
 
 New-Alias -Name eenv -Value Enable-Environment
@@ -128,17 +121,21 @@ function Global:Env-Load
     Write-Output "Environment was loaded!"
 }
 
-function New-Environment
+
+
+function New-Environment ($Name)
 {
-    $env = Test-Path -Path "$(Get-Location)\$EnvDirName\*.ps1"
-    if ($env)
-    {
-        Write-Output "Already created an environment in $PWD/$EnvDirName".Replace("`\", "`/")
+    if (!$Name) { $Name = $EnvDirName }
+    
+    $env = Test-Path -Path "$(Get-Location)/$Name"
+    if ($env) {
+        Write-Output "Already created an environment in $PWD/$Name".Replace("`\", "`/")
         return
     }
-    New-Item -ItemType Directory -Path "$(Get-Location)\$EnvDirName" -ErrorAction SilentlyContinue
-    New-Item -ItemType File -Path "$(Get-Location)\$EnvDirName\init.ps1"
-    $init_ps1_path = "$(Get-Location)\$EnvDirName\init.ps1"
-    $init_ps1_content = Get-Content $PSScriptRoot/scripts/init.ps1 -Raw
-    Add-Content $init_ps1_path $init_ps1_content
+    New-Item -ItemType Directory -Path "$(Get-Location)\$Name"
+    
+    $new_env_file = "$(Get-Location)/$Name/$Name.psm1"
+    New-Item -ItemType File -Path $new_env_file
+    $init_ps1_content = Get-Content $PSScriptRoot/scripts/init.psm1 -Raw
+    Add-Content $new_env_file $init_ps1_content
 }
