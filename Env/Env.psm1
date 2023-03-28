@@ -14,63 +14,9 @@ PS > Env "some PS code to execute"   - Will create a new console, execute the co
 
 #>
 
-# =============================================================================
 # Imports
-# =============================================================================
 . $PSScriptRoot/strings.ps1
 
-
-# =============================================================================
-# Private stuff
-# =============================================================================
-
-function Get-PSExecName
-{
-
-    if ($PSVersionTable.PSVersion.Major -gt 5)
-    {
-        $ps_exe = "pwsh"
-        if ($IsWindows) { $ps_exe += ".exe" }
-    }
-    else { $ps_exe = "powershell.exe" }
-    return $ps_exe
-}
-
-function EnvStart
-{
-    param(
-        [parameter(Mandatory = $false)]
-        [String]$Code,
-
-        [parameter(Mandatory = $false)]
-        [String]$Path,
-
-        [parameter(Mandatory = $false)]
-        [Switch]$NoExit
-    )
-
-    if (!$Path) { $Path = $(Get-Location) }
-
-    $start_args = @()
-    $start_args += "-NoLogo"
-
-    #adding a command key
-    if ($NoExit)
-    { $start_args += "-NoExit", "-Command", "'`n> PS Subprocess with the Environment`n> =============started==============`n';" }
-    else
-    { $start_args += "-Command" }
-
-    #adding a command
-    if ($Code -and ($Code) -ne "")
-    { $start_args += $Code }
-    Start-Process -NoNewWindow -Wait -FilePath $(Get-PSExecName) -ArgumentList $start_args -WorkingDirectory $Path
-    "`n> =============closed===============`n> PS Subprocess with the Environment`n"
-}
-
-
-# =============================================================================
-# Public
-# =============================================================================
 
 function Find-DefaultEnvironment 
 {
@@ -78,13 +24,14 @@ function Find-DefaultEnvironment
         [parameter(Mandatory = $false)]
         [String]$Path
     )
-    
-    while ("$(Get-Location)" -ne "$($(Get-Location).Drive.Root)") {
-        $path = "$(Get-Location)/$EnvDirName/$EnvDirName.psm1"
+    $cur_dir = Get-Item $(Get-Location)
+    while ($cur_dir -ne "$($(Get-Location).Drive.Root)")
+    {
+        $path = "$cur_dir/$EnvDirName/$EnvDirName.psm1"
         if (Test-Path -Path $path) {
             return Split-Path $path
         } else {
-            Set-Location ..
+            $cur_dir = $cur_dir.parent
         }
     }
     return $null
@@ -97,35 +44,51 @@ function Enable-Environment
         [parameter(Mandatory = $false)]
         [String]$Path
     )
-    if ($Path -eq $null) { 
+    
+    if ($global:PsEnvironmentPath -and $global:PsEnvironmentName){
+        "[ERROR] Another environment ($global:PsEnvironmentPath) is enabled!"
+        return
+    }
+    
+    # Searching for the environment
+    if (!$Path) { 
         $env = Find-DefaultEnvironment 
+        "[INFO] Found environment: $env"
     } else {
+        "Path is $Path"
         if(Test-Path $Path){
+            "Path exists"
             $env = $Path
         }
     }
     
-    if ($env -eq $null)
+    if (!$env)
     {
-        $env_name = Split-Path $env -Leaf
-        $global:PsEnvironment = Resolve-Path $env
-        Import-Module "$env/$env_name.psm1"
-    } else {
-        "No environment found"
+        "[ERROR] No environment found"
+        return
     }
+    
+    $env_name = Split-Path $env -Leaf
+    Import-Module "$env/$env_name.psm1"
+    $global:PsEnvironmentPath = Resolve-Path $env
+    $global:PsEnvironmentName = $env_name
+    "[DONE] Environment $env_name is enabled."
 
 }
 
 New-Alias -Name eenv -Value Enable-Environment
 
 function Disable-Environment{
-    if($global:PSENV_NAME -and $global:PSENV_ENABLED)
+    if($global:PsEnvironmentPath -and $global:PsEnvironmentName)
     {
-        exit
+        Remove-Module $global:PsEnvironmentName
+        $global:PsEnvironmentPath = $null
+        $global:PsEnvironmentName = $null
+        "[DONE] Environment $env_name is disabled."
+    } else {
+        "[ERROR] There is no enabled environment."
     }
 }
-
-
 
 function New-Environment ($Name)
 {
@@ -133,7 +96,7 @@ function New-Environment ($Name)
     
     $env = Test-Path -Path "$(Get-Location)/$Name"
     if ($env) {
-        Write-Output "Already created an environment in $PWD/$Name".Replace("`\", "`/")
+        Write-Output "[ERROR] Already created an environment in $PWD/$Name".Replace("`\", "`/")
         return
     }
     New-Item -ItemType Directory -Path "$(Get-Location)\$Name"
