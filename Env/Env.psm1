@@ -83,8 +83,6 @@ function Enable-Environment
 
     )
     if (!$Path) { $Path = $(Get-Location) }
-    $global:PSENV_NAME = Split-Path $Path -Leaf
-    $global:PSENV_ENABLED = $true
     $env = Test-Path -Path "$Path\$EnvDirName\*.ps1" # TODO move this check into $env_main_codeblock
     "Check: $(Get-Location)"
     if (!$env) # TODO move this check into $env_main_codeblock
