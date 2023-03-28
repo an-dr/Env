@@ -72,30 +72,48 @@ function EnvStart
 # Public
 # =============================================================================
 
+function Find-DefaultEnvironment 
+{
+    param(
+        [parameter(Mandatory = $false)]
+        [String]$Path
+    )
+    
+    while ("$(Get-Location)" -ne "$($(Get-Location).Drive.Root)") {
+        $path = "$(Get-Location)/$EnvDirName/$EnvDirName.psm1"
+        if (Test-Path -Path $path) {
+            return Split-Path $path
+        } else {
+            Set-Location ..
+        }
+    }
+    return $null
+}
+
+
 function Enable-Environment
 {
     param(
         [parameter(Mandatory = $false)]
         [String]$Path
-
     )
-    if (!$Path) { $Path = "$(Get-Location)/$EnvDirName" }
-    $env = Test-Path -Path "$Path\$EnvDirName\$EnvDirName.ps1" # TODO move this check into $env_main_codeblock
-    "Check: $(Get-Location)"
-    if (!$env) # TODO move this check into $env_main_codeblock
-    {
-        if ("$(Get-Location)" -eq "$($(Get-Location).Drive.Root)"){
-            # PWD is root
-            Write-Verbose "No environment found"
-            return
-        } else {
-            cd ..
-            # echo "$(Join-Path $(Get-Location) "")"
-            "No environment. Check next: $(Get-Location)"
+    if ($Path -eq $null) { 
+        $env = Find-DefaultEnvironment 
+    } else {
+        if(Test-Path $Path){
+            $env = $Path
         }
     }
+    
+    if ($env -eq $null)
+    {
+        $env_name = Split-Path $env -Leaf
+        $global:PsEnvironment = Resolve-Path $env
+        Import-Module "$env/$env_name.psm1"
+    } else {
+        "No environment found"
+    }
 
-    EnvStart  -Path $Path -Code "$env_main_codeblock" -NoExit
 }
 
 New-Alias -Name eenv -Value Enable-Environment
@@ -105,20 +123,6 @@ function Disable-Environment{
     {
         exit
     }
-}
-
-function Global:Env-Load
-{
-    # $env = Test-Path -Path "$(Get-Location)\$EnvDirName\*.ps1" # TODO move this check into $env_main_codeblock
-    # if (!$env) # TODO move this check into $env_main_codeblock
-    # {
-    #     Write-Verbose "No environment found"
-    #     return
-    # }
-    Write-Output "Not implemented yet, WIP"; return
-    Get-ChildItem ".\$EnvDirName\*.ps1" | ForEach-Object { . $_ }
-    echo $apps2close
-    Write-Output "Environment was loaded!"
 }
 
 
