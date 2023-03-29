@@ -21,6 +21,7 @@ $DefaultEnvModule = "$PSScriptRoot/scripts/init.psm1"
 function Get-EnvModulePath($EnvParentDir, $EnvName){
     $env_dir = Join-Path $EnvParentDir $EnvName
     $env_module = Join-Path $env_dir "$EnvName.psm1"
+    return $env_module
 }
 
 function Test-Env($EnvParentDir, $EnvName)
