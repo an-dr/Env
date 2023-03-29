@@ -60,10 +60,10 @@ function Enable-Environment
         [String]$Path
     )
     
-    if ($global:PsEnvironmentPath -and $global:PsEnvironmentName){
-        "[ERROR] Another environment ($global:PsEnvironmentPath) is enabled!"
-        return
-    }
+    # if ($global:PsEnvironmentPath -and $global:PsEnvironmentName){
+    #     "[ERROR] Another environment ($global:PsEnvironmentPath) is enabled!"
+    #     return
+    # }
     
     # Searching for the environment
     if (!$Path) { 
@@ -85,24 +85,41 @@ function Enable-Environment
     
     $env_name = Split-Path $env -Leaf
     Import-Module "$env/$env_name.psm1"
-    $global:PsEnvironmentPath = Resolve-Path $env
-    $global:PsEnvironmentName = $env_name
+    # $global:PsEnvironmentPath = Resolve-Path $env
+    $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
+    $global:PsEnvironmentName = "$global:PsEnvironmentName$sep$env_name".Trim($sep)
     "[DONE] Environment $env_name is enabled."
 
 }
 
 New-Alias -Name eenv -Value Enable-Environment
 
-function Disable-Environment{
-    if($global:PsEnvironmentPath -and $global:PsEnvironmentName)
-    {
-        Remove-Module $global:PsEnvironmentName
-        $global:PsEnvironmentPath = $null
-        $global:PsEnvironmentName = $null
-        "[DONE] Environment $env_name is disabled."
+function Disable-Environment($name){
+    $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
+    [System.Collections.ArrayList]$env_list = $global:PsEnvironmentName.Split($sep)
+    
+    # Check what to remove
+    if (!$name){
+        $to_remove = [System.Collections.ArrayList]$env_list
     } else {
-        "[ERROR] There is no enabled environment."
+        $to_remove = [System.Collections.ArrayList]@($name)
     }
+    if(!$to_remove){
+        "[ERROR] There is no enabled environment."
+        return
+    }
+    "[DEBUG] To remove: $to_remove, $($to_remove.GetType())"
+    "[DEBUG] To env_list: $env_list"
+    
+    foreach ($env in $to_remove.Copy()) {
+        Remove-Module $env
+        $env_list.Remove($env)
+        "[DONE] Environment $env_name is disabled."
+    }
+    
+    # Update the env var
+    $global:PsEnvironmentName = $env_list -join $sep
+    
 }
 
 function New-Environment ($Name)
