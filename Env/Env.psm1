@@ -53,6 +53,15 @@ function Find-DefaultEnvironment
 }
 
 
+function Get-Environment {
+    $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
+    if($global:PsEnvironmentName){
+        return [System.Collections.ArrayList]$global:PsEnvironmentName.Split($sep)
+    } else {
+        return $null
+    }
+}
+
 function Enable-Environment
 {
     param(
@@ -60,34 +69,33 @@ function Enable-Environment
         [String]$Path
     )
     
-    # if ($global:PsEnvironmentPath -and $global:PsEnvironmentName){
-    #     "[ERROR] Another environment ($global:PsEnvironmentPath) is enabled!"
-    #     return
-    # }
-    
     # Searching for the environment
     if (!$Path) { 
         $env = Find-DefaultEnvironment 
         "[INFO] Found environment: $env"
     } else {
-        "Path is $Path"
         if(Test-Path $Path){
-            "Path exists"
             $env = $Path
         }
     }
     
-    if (!$env)
+    $env_name = Split-Path $env -Leaf
+    $env_file = "$env/$env_name.psm1"
+    if (!$env -or !$(Test-Path $env_file))
     {
         "[ERROR] No environment found"
         return
     }
     
-    $env_name = Split-Path $env -Leaf
-    Import-Module "$env/$env_name.psm1"
+    Import-Module $env_file
     # $global:PsEnvironmentPath = Resolve-Path $env
     $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
-    $global:PsEnvironmentName = "$global:PsEnvironmentName$sep$env_name".Trim($sep)
+    
+    # Workin with the env list
+    $tmpEnvVar = "$global:PsEnvironmentName$sep$env_name" #temp PsEnvironmentName representation
+    $env_list = $tmpEnvVar.Split($sep) | Sort-Object -Unique # make values uniqie in an Array
+    # $env_list = $env_list | Where { $_ -and $_.Trim() } # clear empty elements
+    $global:PsEnvironmentName = $($env_list -join $sep).TrimStart($sep)  # convert the array to the string and update the value
     "[DONE] Environment $env_name is enabled."
 
 }
@@ -96,29 +104,39 @@ New-Alias -Name eenv -Value Enable-Environment
 
 function Disable-Environment($name){
     $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
-    [System.Collections.ArrayList]$env_list = $global:PsEnvironmentName.Split($sep)
     
-    # Check what to remove
-    if (!$name){
-        $to_remove = [System.Collections.ArrayList]$env_list
-    } else {
-        $to_remove = [System.Collections.ArrayList]@($name)
+    if($global:PsEnvironmentName){
+        [System.Collections.ArrayList]$env_list = $global:PsEnvironmentName.Split($sep)
+        # $env_list = $env_list.Re
     }
-    if(!$to_remove){
+    if(!$env_list){
         "[ERROR] There is no enabled environment."
         return
     }
-    "[DEBUG] To remove: $to_remove, $($to_remove.GetType())"
-    "[DEBUG] To env_list: $env_list"
     
-    foreach ($env in $to_remove.Copy()) {
+    # Check what to remove
+    $to_remove = [System.Collections.ArrayList]::new()
+    if (!$name){
+        foreach ($el in $env_list) {
+            $to_remove.Add($el)
+        }
+    } else {
+        $to_remove = [System.Collections.ArrayList]@($name)
+    }
+
+    foreach ($env in $to_remove) {
         Remove-Module $env
         $env_list.Remove($env)
         "[DONE] Environment $env_name is disabled."
     }
     
     # Update the env var
-    $global:PsEnvironmentName = $env_list -join $sep
+    $tmpEnvVar = $env_list -join $sep
+    if(!$tmpEnvVar){
+        $global:PsEnvironmentName = $null  # delete the variable
+    } else {
+        $global:PsEnvironmentName = $tmpEnvVar
+    }
     
 }
 
