@@ -14,8 +14,31 @@ PS > Env "some PS code to execute"   - Will create a new console, execute the co
 
 #>
 
-# Imports
-. $PSScriptRoot/strings.ps1
+$DefaultEnvDirName = ".psenv"
+$DefaultEnvModule = "$PSScriptRoot/scripts/init.psm1"
+
+
+function Get-EnvModulePath($EnvParentDir, $EnvName){
+    $env_dir = Join-Path $EnvParentDir $EnvName
+    $env_module = Join-Path $env_dir "$EnvName.psm1"
+}
+
+function Test-Env($EnvParentDir, $EnvName)
+{
+    $env_module = Get-EnvModulePath $EnvParentDir $EnvName
+    if($env_module){
+        return Test-Path $env_module
+    } else {
+        return $false
+    }
+}
+
+function Test-IfEnv($Dir)
+{
+    # $test_fullpath = Resolve-Path $Dir
+    $test_item = Get-Item $Dir
+    return Test-Env $test_item.Parent $test_item.Name
+}
 
 function Find-Environment($Path)
 {
@@ -42,7 +65,7 @@ function Find-DefaultEnvironment
     $cur_dir = Get-Item $(Get-Location)
     while ($cur_dir -ne "$($(Get-Location).Drive.Root)")
     {
-        $path = "$cur_dir/$EnvDirName/$EnvDirName.psm1"
+        $path = "$cur_dir/$DefaultEnvDirName/$DefaultEnvDirName.psm1"
         if (Test-Path -Path $path) {
             return Split-Path $path
         } else {
@@ -142,7 +165,7 @@ function Disable-Environment($name){
 
 function New-Environment ($Name)
 {
-    if (!$Name) { $Name = $EnvDirName }
+    if (!$Name) { $Name = $DefaultEnvDirName }
     
     $env = Test-Path -Path "$(Get-Location)/$Name"
     if ($env) {
@@ -153,6 +176,6 @@ function New-Environment ($Name)
     
     $new_env_file = "$(Get-Location)/$Name/$Name.psm1"
     New-Item -ItemType File -Path $new_env_file
-    $init_ps1_content = Get-Content $PSScriptRoot/scripts/init.psm1 -Raw
+    $init_ps1_content = Get-Content $DefaultEnvModule -Raw
     Add-Content $new_env_file $init_ps1_content
 }
