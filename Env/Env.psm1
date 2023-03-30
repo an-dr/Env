@@ -24,7 +24,7 @@ function Get-EnvModulePath($EnvParentDir, $EnvName){
     return $env_module
 }
 
-function Test-Env($EnvParentDir, $EnvName)
+function Test-IsEnvWithName($EnvParentDir, $EnvName)
 {
     $env_module = Get-EnvModulePath $EnvParentDir $EnvName
     if($env_module){
@@ -34,11 +34,11 @@ function Test-Env($EnvParentDir, $EnvName)
     }
 }
 
-function Test-IfEnv($Dir)
+function Test-IsEnv($Dir)
 {
     # $test_fullpath = Resolve-Path $Dir
     $test_item = Get-Item $Dir
-    return Test-Env $test_item.Parent $test_item.Name
+    return Test-IsEnvWithName $test_item.Parent $test_item.Name
 }
 
 function Find-Environment($Path)
@@ -46,15 +46,13 @@ function Find-Environment($Path)
     if(!$Path){ $Path = Get-Location}
     $dirs = Get-ChildItem -Path $Path -Directory
     foreach ($dir in $dirs) {
-        $dir_name =  $dir.Name
-        if (Test-Path "$dir/$dir_name.psm1")
+        if (Test-IsEnv $dir)
         {
             return $dir
-        } else {
-            "Not found"
-            return $null
         }
     }
+    "Not found"
+    return $null
 }
 
 function Find-DefaultEnvironment 
@@ -66,16 +64,15 @@ function Find-DefaultEnvironment
     $cur_dir = Get-Item $(Get-Location)
     while ($cur_dir -ne "$($(Get-Location).Drive.Root)")
     {
-        $path = "$cur_dir/$DefaultEnvDirName/$DefaultEnvDirName.psm1"
-        if (Test-Path -Path $path) {
-            return Split-Path $path
-        } else {
-            $cur_dir = $cur_dir.parent
+        if (Test-IsEnvWithName $cur_dir $DefaultEnvDirName) {
+            return Get-Item "$cur_dir/$DefaultEnvDirName"
         }
+        
+        # Go up
+        $cur_dir = $cur_dir.parent
     }
     return $null
 }
-
 
 function Get-Environment {
     $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
