@@ -14,8 +14,8 @@ PS > Env "some PS code to execute"   - Will create a new console, execute the co
 
 #>
 
-$DefaultEnvDirName = ".psenv"
-$DefaultEnvModule = "$PSScriptRoot/scripts/init.psm1"
+$DefaultEnvDirName = "psenv"
+$DefaultEnvModule = "$PSScriptRoot/scripts/template.psm1"
 
 
 function Get-EnvModulePath($EnvParentDir, $EnvName){
@@ -51,7 +51,6 @@ function Find-Environment($Path)
             return $dir
         }
     }
-    "Not found"
     return $null
 }
 
@@ -59,10 +58,13 @@ function Find-DefaultEnvironment
 {
     param(
         [parameter(Mandatory = $false)]
-        [String]$Path
+        [String]$StartPath
     )
-    $cur_dir = Get-Item $(Get-Location)
-    while ($cur_dir -ne "$($(Get-Location).Drive.Root)")
+    
+    if(!$StartPath){ $StartPath = Get-Location}
+    
+    $cur_dir = Get-Item $StartPath
+    while ("$cur_dir" -ne "$($(Get-Location).Drive.Root)")
     {
         if (Test-IsEnvWithName $cur_dir $DefaultEnvDirName) {
             return Get-Item "$cur_dir/$DefaultEnvDirName"
@@ -92,36 +94,36 @@ function Enable-Environment
     
     # Searching for the environment
     if (!$Path) { 
-        $env = Find-DefaultEnvironment 
-        "[INFO] Found environment: $env"
-    } else {
-        if(Test-Path $Path){
-            $env = $Path
+        # No argument - search here
+        $env = Find-DefaultEnvironment
+        if(!$env){
+            $env = Find-Environment
         }
+    } else {
+        # Search by path
+        $env = Find-Environment $Path
     }
     
-    $env_name = Split-Path $env -Leaf
-    $env_file = "$env/$env_name.psm1"
-    if (!$env -or !$(Test-Path $env_file))
-    {
+    if($env){
+        "[INFO] Found environment: $env"
+    } else {
         "[ERROR] No environment found"
         return
     }
     
+    $env_name = Split-Path $env -Leaf
+    $env_file = Get-EnvModulePath $env.parent $env_name
+    
     Import-Module $env_file
-    # $global:PsEnvironmentPath = Resolve-Path $env
-    $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
     
     # Workin with the env list
+    $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
     $tmpEnvVar = "$global:PsEnvironmentName$sep$env_name" #temp PsEnvironmentName representation
     $env_list = $tmpEnvVar.Split($sep) | Sort-Object -Unique # make values uniqie in an Array
-    # $env_list = $env_list | Where { $_ -and $_.Trim() } # clear empty elements
     $global:PsEnvironmentName = $($env_list -join $sep).TrimStart($sep)  # convert the array to the string and update the value
     "[DONE] Environment $env_name is enabled."
-
 }
 
-New-Alias -Name eenv -Value Enable-Environment
 
 function Disable-Environment($name){
     $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
@@ -132,7 +134,7 @@ function Disable-Environment($name){
     }
     if(!$env_list){
         "[ERROR] There is no enabled environment."
-        return
+        return $null
     }
     
     # Check what to remove
@@ -158,7 +160,6 @@ function Disable-Environment($name){
     } else {
         $global:PsEnvironmentName = $tmpEnvVar
     }
-    
 }
 
 function New-Environment ($Name)
@@ -177,3 +178,5 @@ function New-Environment ($Name)
     $init_ps1_content = Get-Content $DefaultEnvModule -Raw
     Add-Content $new_env_file $init_ps1_content
 }
+
+New-Alias -Name eenv -Value Enable-Environment
