@@ -141,7 +141,7 @@ function Disable-Environment($name){
     $to_remove = [System.Collections.ArrayList]::new()
     if (!$name){
         foreach ($el in $env_list) {
-            $to_remove.Add($el)
+            $to_remove.Add($el) > $null
         }
     } else {
         $to_remove = [System.Collections.ArrayList]@($name)
