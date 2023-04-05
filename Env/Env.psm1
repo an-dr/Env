@@ -89,7 +89,10 @@ function Enable-Environment
 {
     param(
         [parameter(Mandatory = $false)]
-        [String]$Path
+        [String]$Path,
+        
+        [parameter(Mandatory = $false)]
+        [Switch]$VerboseOutput
     )
     
     # Searching for the environment
@@ -114,7 +117,7 @@ function Enable-Environment
     $env_name = Split-Path $env -Leaf
     $env_file = Get-EnvModulePath $env.parent $env_name
     
-    Import-Module $env_file
+    Import-Module $env_file -Scope Global -Verbose:$VerboseOutput
     
     # Workin with the env list
     $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
