@@ -19,7 +19,6 @@ $DefaultEnvModule = "$PSScriptRoot/scripts/template.psm1"
 
 
 
-
 function Get-EnvModulePath($EnvParentDir, $EnvName){
     $env_dir = Join-Path $EnvParentDir $EnvName
     $env_module = Join-Path $env_dir "$EnvName.psm1"
@@ -77,7 +76,7 @@ class PsEnvironmentInfo {
                  -ErrorAction SilentlyContinue
                  
         $new_env_file = New-Item -ItemType File -Path $this.GetModulePath()
-        $init_ps1_content = Get-Content $DefaultEnvModule -Raw
+        $init_ps1_content = Get-Content $global:DefaultEnvModule -Raw
         Add-Content $new_env_file $init_ps1_content
     }
     
@@ -246,4 +245,11 @@ function New-Environment ($Name)
     $env.Create()
 }
 
-New-Alias -Name eenv -Value Enable-Environment
+
+pushd C:/Users/agramakov/Desktop
+
+$a = [PsEnvironmentInfo]::new(".\myenv\")
+$a.IsValid()
+$b = [PsEnvironmentInfo]::new(".\myenv2\")
+$b.Create()
+popd
