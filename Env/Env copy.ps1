@@ -67,8 +67,7 @@ class PsEnvironmentInfo {
     
     [void]Create(){
         if ($this.IsValid()){
-            "[ERROR] Already created"
-            return
+            Write-Error "[ERROR] Already created"
         }
         
         New-Item -ItemType Directory `
