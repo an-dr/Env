@@ -14,10 +14,7 @@ PS > Env "some PS code to execute"   - Will create a new console, execute the co
 
 #>
 
-$DefaultEnvDirName = "psenv"
-$DefaultEnvModule = "$PSScriptRoot/scripts/template.psm1"
-
-
+. $PSScriptRoot/EnvironmentHandle.ps1
 
 function Get-EnvModulePath($EnvParentDir, $EnvName){
     $env_dir = Join-Path $EnvParentDir $EnvName
@@ -25,95 +22,46 @@ function Get-EnvModulePath($EnvParentDir, $EnvName){
     return $env_module
 }
 
-function Test-IsEnvWithName($EnvParentDir, $EnvName)
-{
+
+function Test-DirIsEnv($Dir) {
+    $env_q = [EnvironmentHandle]::New($Dir)
+    return $env_q.IsValid()
+}
+
+function Test-IsEnvWithName($EnvParentDir, $EnvName) {
     $env_module = Get-EnvModulePath $EnvParentDir $EnvName
-    if($env_module){
+    if ($env_module){
         return Test-Path $env_module
     } else {
         return $false
     }
 }
 
-function Test-IsEnv($Dir)
-{
-    # $test_fullpath = Resolve-Path $Dir
-    $test_item = Get-Item $Dir
-    return Test-IsEnvWithName $test_item.Parent $test_item.Name
-}
-
-
-class PsEnvironmentInfo {
-    [System.IO.DirectoryInfo] $EnvironmentLocation
-    
-    PsEnvironmentInfo([String] $Path) {
-        [Environment]::CurrentDirectory = $pwd
-        $this.EnvironmentLocation = [System.IO.Path]::GetFullPath("$Path")
-    }
-    
-    [string]ToString(){
-        return $this.EnvironmentLocation.ToString()
-    }
-    
-    [string]GetName(){
-        return $this.EnvironmentLocation.BaseName
-    }
-    
-    [string]GetModulePath(){
-        $file_name = "$($this.GetName()).psm1"
-        $path = Join-Path $this.EnvironmentLocation $file_name
-        return "$path"
-    }
-    
-    [void]Create(){
-        if ($this.IsValid()){
-            Write-Error "[ERROR] Already created"
-        }
-        
-        New-Item -ItemType Directory `
-                 -Path $this.EnvironmentLocation `
-                 -ErrorAction SilentlyContinue
-                 
-        $new_env_file = New-Item -ItemType File -Path $this.GetModulePath()
-        $init_ps1_content = Get-Content $global:DefaultEnvModule -Raw
-        Add-Content $new_env_file $init_ps1_content
-    }
-    
-    [bool]IsValid(){
-        return Test-Path $($this.GetModulePath())
-    }
-}
-
-function Find-Environment($Path)
-{
-    if(!$Path){ $Path = Get-Location}
+function Find-Environment($Path) {
+    if (!$Path){ $Path = Get-Location }
     $dirs = Get-ChildItem -Path $Path -Directory
     foreach ($dir in $dirs) {
-        if (Test-IsEnv $dir)
-        {
+        if (Test-DirIsEnv $dir) {
             return $dir
         }
     }
     return $null
 }
 
-function Find-Environments($Path)
-{
-    if(!$Path){ $Path = Get-Location}
+function Find-Environments($Path) {
+    if (!$Path){ $Path = Get-Location }
     $cur_dir = Get-Item $Path
     
     # A container for results
     $envs = [System.Collections.ArrayList]@()
     
     # Check all from $Path to the very root
-    while ("$cur_dir" -ne "$($(Get-Location).Drive.Root)")
-    {
+    while ("$cur_dir" -ne "$($(Get-Location).Drive.Root)") {
         # check folders here
         $dirs = Get-ChildItem -Path $cur_dir -Directory
         foreach ($dir in $dirs) {
-            $env_q = [PsEnvironmentInfo]::New($dir.FullName)
-            if ($env_q.IsValid())
-            {
+            $env_q = [EnvironmentHandle]::New($dir.FullName)
+            if ($env_q.IsValid()) {
                 $envs.Add($env_q) > $null
             }
         }
@@ -125,20 +73,18 @@ function Find-Environments($Path)
     return $envs
 }
 
-function Find-DefaultEnvironment 
-{
+function Find-DefaultEnvironment {
     param(
         [parameter(Mandatory = $false)]
         [String]$StartPath
     )
     
-    if(!$StartPath){ $StartPath = Get-Location}
+    if (!$StartPath){ $StartPath = Get-Location }
     
     $cur_dir = Get-Item $StartPath
-    while ("$cur_dir" -ne "$($(Get-Location).Drive.Root)")
-    {
-        if (Test-IsEnvWithName $cur_dir $DefaultEnvDirName) {
-            return Get-Item "$cur_dir/$DefaultEnvDirName"
+    while ("$cur_dir" -ne "$($(Get-Location).Drive.Root)") {
+        if (Test-IsEnvWithName $cur_dir [EnvironmentHandle]::DefaultEnvDirName) {
+            return Get-Item "$cur_dir/$([EnvironmentHandle]::DefaultEnvDirName)"
         }
         
         # Go up
@@ -149,15 +95,14 @@ function Find-DefaultEnvironment
 
 function Get-Environment {
     $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
-    if($global:PsEnvironmentName){
+    if ($global:PsEnvironmentName){
         return [System.Collections.ArrayList]$global:PsEnvironmentName.Split($sep)
     } else {
         return $null
     }
 }
 
-function Enable-Environment
-{
+function Enable-Environment {
     param(
         [parameter(Mandatory = $false)]
         [String]$Path,
@@ -167,26 +112,37 @@ function Enable-Environment
     )
     
     # Searching for the environment
+    
     if (!$Path) { 
         # No argument - search here
         $env = Find-DefaultEnvironment
-        if(!$env){
+        if (!$env){
             $env = Find-Environment
         }
     } else {
         # Search by path
-        $env = Find-Environment $Path
+        
+        if(Test-DirIsEnv $Path){
+            # Provided the env
+            $env = $Path
+        } else {
+            # Provided a path with possible env
+            $env = Find-Environment $Path
+        }
+        
     }
     
-    if($env){
+    if ($env){
         "[INFO] Found environment: $env"
     } else {
         "[ERROR] No environment found"
         return
     }
     
-    $env_name = Split-Path $env -Leaf
-    $env_file = Get-EnvModulePath $env.parent $env_name
+    $env_info = [EnvironmentHandle]::New($env)
+    
+    $env_name = $env_info.GetName()
+    $env_file = $env_info.GetModulePath()
     
     Import-Module $env_file -Scope Global -Verbose:$VerboseOutput
     
@@ -202,11 +158,11 @@ function Enable-Environment
 function Disable-Environment($name){
     $sep = [IO.Path]::PathSeparator # ; or : depending on the platform
     
-    if($global:PsEnvironmentName){
+    if ($global:PsEnvironmentName){
         [System.Collections.ArrayList]$env_list = $global:PsEnvironmentName.Split($sep)
         # $env_list = $env_list.Re
     }
-    if(!$env_list){
+    if (!$env_list){
         "[ERROR] There is no enabled environment."
         return $null
     }
@@ -229,26 +185,36 @@ function Disable-Environment($name){
     
     # Update the env var
     $tmpEnvVar = $env_list -join $sep
-    if(!$tmpEnvVar){
+    if (!$tmpEnvVar){
         $global:PsEnvironmentName = $null  # delete the variable
     } else {
         $global:PsEnvironmentName = $tmpEnvVar
     }
 }
 
-function New-Environment ($Name)
-{
-    if (!$Name) { $Name = $DefaultEnvDirName }
-    
-    $env = [PsEnvironmentInfo]::new($Name)
-    $env.Create()
+function New-Environment ($Name) {
+    if (!$Name) { $Name = [EnvironmentHandle]::DefaultEnvDirName }
+    $env = [EnvironmentHandle]::new($Name)
+    $env.Build()
+    return $env
 }
 
+# New-Alias -Name eenv -Value Enable-Environment
 
-pushd C:/Users/agramakov/Desktop
 
-$a = [PsEnvironmentInfo]::new(".\myenv\")
-$a.IsValid()
-$b = [PsEnvironmentInfo]::new(".\myenv2\")
-$b.Create()
-popd
+cd C:\Users\dongr\Desktop
+
+$e_test = New-Environment "test"
+Test-DirIsEnv ./test
+Find-Environment .
+Enable-Environment "test"
+
+$e_def = New-Environment
+Enable-Environment
+
+
+Disable-Environment "test"
+$e_test.Clear()
+
+Disable-Environment
+$e_def.Clear()
