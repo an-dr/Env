@@ -13,13 +13,13 @@
 
 class EnvironmentHandle {
     static $DefaultEnvDirName = "psenv"
-    static $DefaultEnvModule = "$global:PSScriptRoot/scripts/template.psm1"
+    static $DefaultEnvModule = "$global:PSScriptRoot/psenv/psenv.psm1"
     
     [System.IO.DirectoryInfo] $EnvironmentLocation
     
-    EnvironmentHandle([String] $Path) {
+    EnvironmentHandle([String] $EnvironmentLocation) {
         [Environment]::CurrentDirectory = $pwd
-        $this.EnvironmentLocation = [System.IO.Path]::GetFullPath("$Path")
+        $this.EnvironmentLocation = [System.IO.Path]::GetFullPath("$EnvironmentLocation")
     }
     
     [string]ToString(){
@@ -41,10 +41,9 @@ class EnvironmentHandle {
             "[ERROR] Already created"
             return
         }
-        "test: $([EnvironmentHandle]::DefaultEnvDirName)"
         New-Item -ItemType Directory `
-            -Path $this.EnvironmentLocation `
-            -ErrorAction SilentlyContinue
+                 -Path $this.EnvironmentLocation `
+                 -ErrorAction SilentlyContinue
                  
         $new_env_file = New-Item -ItemType File -Path $this.GetModulePath()
         $init_ps1_content = Get-Content "$([EnvironmentHandle]::DefaultEnvModule)" -Raw
@@ -55,11 +54,65 @@ class EnvironmentHandle {
         return Test-Path $($this.GetModulePath())
     }
     
+    [bool]IsActive(){
+        $module = Get-Module $this.GetName()
+        if ($module){
+            $module_path = $module.Path.ToString()
+            $this_env_path = $this.GetModulePath().ToString()
+            return $module_path -eq $this_env_path
+        }
+        return $false
+    }
+    
+    [void]Enable(){
+        if($this.IsActive()){
+            "[ERROR] Already active"
+            return
+        }
+        
+        # Check that nothing is imported
+        
+        if($(Get-Module $this.GetName()))
+        {   # Something with this name is imported! Let's check what
+            if(!$this.IsActive()){
+                "[ERROR] Another environment or module with the same name is already imported!"
+                return
+            }
+        }
+        Import-Module $($this.GetModulePath()) -Scope Global
+    }
+    
+    [void]Disable(){
+        if($this.IsActive()){
+            Remove-Module $this.GetName()
+        }
+    }
+    
     [void]Clear(){
-        if ($this.IsValid())
-        {
+        if ($this.IsValid()) {
             #If exists
             Remove-Item -Recurse -Force $this.EnvironmentLocation
         }
     }
 }
+
+# cd C:\Users\dongr\Desktop
+# "Create an env"
+# $e_test = [EnvironmentHandle]::new("test")
+# $e_test.Build()
+
+# "e_test.IsActive() - should be false:"
+# $e_test.IsActive()
+
+# "> Enable!"
+# $e_test.Enable()
+
+# "e_test.IsActive() - should be true:"
+# $e_test.IsActive()
+
+# "> Disable!"
+# $e_test.Disable()
+# "e_test.IsActive() - should be false:"
+# $e_test.IsActive()
+
+# $e_test.Clear()
