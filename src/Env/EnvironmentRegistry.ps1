@@ -67,10 +67,3 @@ class EnvironmentRegistry {
     }
     
 }
-
-# [EnvironmentRegistry]::Add("test","C:/Windows.psm1", 1)
-# [EnvironmentRegistry]::Add("test1","C:/Users", 1)
-# [EnvironmentRegistry]::GetPsm1Path("test1")
-# [EnvironmentRegistry]::GetPsm1Root("test1")
-# [EnvironmentRegistry]::Remove("test2")
-# [EnvironmentRegistry]::Remove("test1")

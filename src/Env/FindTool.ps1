@@ -10,7 +10,8 @@
 #
 # *************************************************************************
 
-# TODO: create a set of tools for vertical (in the same folder) and 
+# TODO: not ready
+# create a set of tools for vertical (in the same folder) and 
 # horisontal (up to the root) search by pattern 
 
 function Find-Environment($Path) {

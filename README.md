@@ -2,7 +2,7 @@
 
 <img src="assets/logo.png" width="250">
 
-Powershell module to simple setting up your environment from the .environment folder content
+Powershell module using Create and Enable/Disable local modules with a specific format called Environments. Use it if you you want to implement some functionality applicable only for a specific location, e.g. a function `Organize-PhotosByDate` that can be stored in your `Photos` directory.
 
 [@PowershellGallery](https://www.powershellgallery.com/packages/Env)
 
@@ -14,43 +14,22 @@ Install-Module -Name Env
 
 ## Usage
 
-<img src="assets/schematic_main.png" width="350">
+The module consists of functions:
 
-#### A. Create
+- `New-Environment`
+- `Enable-Environment`
+- `Disable-Environment`
+- `Get-Environment`
+- `Test-DirIsEnv`
 
-To create a new `.environment` folder:
+The default environment name `psenv` is used when the name is not provided.
 
-```powershell
-Env-Init
-```
+The suggested workflow is following:
 
-#### B. Open
-
-To open an `.environment` folder:
-
-```powershell
-Env-Open
-```
-
-#### C. Edit
-
-Create scripts that should be executed at your environment
-
-Functions and variable will be loaded, other code will be executed, i.e. scripts will dot-sourced
-
-(see: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scripts?view=powershell-6#script-scope-and-dot-sourcing)
-
-#### D. Run
-
-To run you environment:
-
-```powershell
-Env
-```
-
-#### E. Finish
-
-To exit from your Environment input `exit`.
+1. **Create** an Environment using `New-Environment`
+2. **Modify** you environment in the newly created folder as you wish
+3. **Activate** the environment when you need it using `Enable-Environment`. You CAN activate several environments with unique names at once
+4. **Deactivate** an environment using `Disable-Environment`. To get list of all activate environments use `Get-Environment`
 
 ## License
 
@@ -67,8 +46,4 @@ If you will decide to sopport me, you can send some pretty words on my email or 
 
 [Buy me a cup of tea](https://paypal.me/4ndr/1eur)
 
-Any ammount will motivate me to develop the project. Thanks in advance!
-
-## Todo
-
-[Trello card](https://trello.com/c/A0mWkOqy/1-env-todo)
+Any amount will motivate me to develop the project. Thanks in advance!

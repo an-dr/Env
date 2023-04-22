@@ -1,18 +1,14 @@
-<#
-.Synopsis
-Creates a Powershell process with an environment with dot-sourced content from the .environment folder.
-
-.Description
-To use it create a folder caled .environment and fulfill by your content to setup the environment.
-Calling Env at the folder with a .environment folder will create a new Powershell process and dot source
-everything that exists at the .environment folder
-
-.Example
-PS > Env  - Will create a new console at the same window
-
-PS > Env "some PS code to execute"   - Will create a new console, execute the code and exit
-
-#>
+# *************************************************************************
+#
+# Copyright (c) 2023 Andrei Gramakov. All rights reserved.
+#
+# This file is licensed under the terms of the MIT license.  
+# For a copy, see: https://opensource.org/licenses/MIT
+#
+# site:    https://agramakov.me
+# e-mail:  mail@agramakov.me
+#
+# *************************************************************************
 
 . $PSScriptRoot/EnvironmentHandle.ps1
 . $PSScriptRoot/EnvironmentRegistry.ps1
@@ -45,7 +41,7 @@ function Get-Environment {
 Creates a new environment and returns a DirectoryInfo object
 
 .PARAMETER Name
-Namt of the new environment
+Name of the a environment
 #>
 function New-Environment ($Name) {
     if (!$Name) { $Name = [EnvironmentHandle]::DefaultEnvDirName }
@@ -54,6 +50,13 @@ function New-Environment ($Name) {
     return $env.EnvironmentLocation
 }
 
+<#
+.SYNOPSIS
+Enables an environment with the provided name. If the name is not provided, used the default one - psenv
+
+.PARAMETER Name
+Name of an environment to enable
+#> 
 function Enable-Environment {
     param(
         [parameter(Mandatory = $false)]
@@ -79,7 +82,13 @@ function Enable-Environment {
     "[DONE] Environment $env_name is enabled."
 }
 
+<#
+.SYNOPSIS
+Disables an environment with the provided name. If the name is not provided, used the default one - psenv
 
+.PARAMETER Name
+Name of an environment to disable
+#> 
 function Disable-Environment($Name){
     if(!$Name){
         "[INFO] The name is not provided. Used '$([EnvironmentHandle]::DefaultEnvDirName)'"
