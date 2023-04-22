@@ -13,7 +13,7 @@
 
 class EnvironmentHandle {
     static $DefaultEnvDirName = "psenv"
-    static $DefaultEnvModule = "$global:PSScriptRoot/psenv/psenv.psm1"
+    static $DefaultEnvModule = "psenv/psenv.psm1"
     
     [System.IO.DirectoryInfo] $EnvironmentLocation
     
@@ -46,7 +46,8 @@ class EnvironmentHandle {
                  -ErrorAction SilentlyContinue
                  
         $new_env_file = New-Item -ItemType File -Path $this.GetModulePath()
-        $init_ps1_content = Get-Content "$([EnvironmentHandle]::DefaultEnvModule)" -Raw
+        $template_tile = Join-Path $PSScriptRoot $([EnvironmentHandle]::DefaultEnvModule)
+        $init_ps1_content = Get-Content $template_tile -Raw
         Add-Content $new_env_file $init_ps1_content
     }
     
