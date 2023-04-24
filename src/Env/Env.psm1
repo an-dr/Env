@@ -12,19 +12,10 @@
 
 . $PSScriptRoot/EnvironmentHandle.ps1
 . $PSScriptRoot/EnvironmentRegistry.ps1
+. $PSScriptRoot/FindTools.ps1
 
 
-<#
-.SYNOPSIS
-Test is the directory contains an environment
 
-.PARAMETER Dir
-Input directory
-#>
-function [bool]Test-DirIsEnv($Dir) {
-    $env_q = [EnvironmentHandle]::New($Dir)
-    return $env_q.IsValid()
-}
 
 
 <#
@@ -50,6 +41,31 @@ function New-Environment ($Name) {
     return $env.EnvironmentLocation
 }
 
+
+# PRIVATE
+function Select-Environment($EnvironmentHandleList){
+    
+    [System.Collections.ArrayList]$EnvTable = @()
+    $i = 1
+    foreach ($e in $EnvironmentHandleList){
+        $EnvTable.Add([PSCustomObject]@{N = $i; Location = $e.EnvironmentLocation }) > $null
+        $i += 1
+    }
+    
+    if ($EnvTable.Count -gt 1) {
+        Write-Host "[INFO] Found several environments. Specify the environment to Enable..."
+        $EnvTable | Format-Table | Out-Host
+        $selected_n = Read-Host -Prompt "Write an environment number: "
+    } elseif ($EnvTable.Count -eq 1) {
+        $selected_n = 1
+    }
+    
+    $selected = $EnvTable | where N -EQ  $selected_n
+    return $selected[0].Location
+    
+}
+
+
 <#
 .SYNOPSIS
 Enables an environment with the provided name. If the name is not provided, used the default one - psenv
@@ -63,23 +79,45 @@ function Enable-Environment {
         [String]$Path
     )
     
-    if(!$Path){
-        $Path = Join-Path $(Get-Location) $([EnvironmentHandle]::DefaultEnvDirName)
-        "[INFO] The path is not provided. Used '$Path'"
+    if (!$Path){
+        $envs = Find-EnvironmentsInBranch
+        $Path = Select-Environment $envs
+        "[INFO] Selected: $Path"
     }
     
-    $env_info = [EnvironmentHandle]::New($Path)
+    if ($Path){
+        $env_info = [EnvironmentHandle]::New($Path)
+        $env_is_valid = $env_info.IsValid()
+    }
     
-    if ($env_info.IsValid()){
-        "[INFO] Found environment: $($env_info.EnvironmentLocation)"
-    } else {
+    $env_name = $env_info.GetName()
+    if (Get-Module $env_name){
+        "[ERROR] $env_name is already enabled!"
+        return
+    }
+    
+    if (!$env_is_valid){
         "[ERROR] No environment found"
         return
     }
     
+    "[INFO] Enabling environment: $($env_info.EnvironmentLocation)"
     $env_info.Enable()
-    [EnvironmentRegistry]::Add($env_info.GetName(), $env_info.GetModulePath())
+    [EnvironmentRegistry]::Add($env_name, $env_info.GetModulePath())
     "[DONE] Environment $env_name is enabled."
+}
+
+
+# PRIVATE
+function Get-EnabledEnvironments{
+    [System.Collections.ArrayList]$EnabledEnvs = @()
+    "$([EnvironmentRegistry]::EnvironmentTable.Values)"
+    foreach ($env_module in [EnvironmentRegistry]::EnvironmentTable.Values) {
+        $env_path = Get-Item $env_module
+        $e = [EnvironmentHandle]::New($env_path.Directory)
+        $EnabledEnvs.Add($e) > $null
+    }
+    return $EnabledEnvs
 }
 
 <#
@@ -90,23 +128,29 @@ Disables an environment with the provided name. If the name is not provided, use
 Name of an environment to disable
 #> 
 function Disable-Environment($Name){
-    if(!$Name){
-        "[INFO] The name is not provided. Used '$([EnvironmentHandle]::DefaultEnvDirName)'"
-        $Name = [EnvironmentHandle]::DefaultEnvDirName
-    }
-    
-    if (![EnvironmentRegistry]::Contains($Name)){
-        "[ERROR] There is no enabled environment."
+    if ([EnvironmentRegistry]::EnvironmentTable.Count -eq 0) {
+        "[ERROR] No enabled environments."
         return
     }
     
-    $env_info = [EnvironmentHandle]::New($Name)
-    if ($env_info.IsActive()) {
-        $env_info.Disable()
+    if (!$Name){
+        "[ERROR] The name is not provided."
+        return Get-Environment
+    }
+    
+    if (![EnvironmentRegistry]::Contains($Name)){
+        "[ERROR] The environment is not enabled."
+        return
+    }
+    
+    $module = Get-Module $Name
+    if ($module){
+        Remove-Module $Name
     } else{
         "[WARNING] Environment is in the registry, but not enabled. `
         Probably disabled using Remove-Module."
     }
     
     [EnvironmentRegistry]::Remove($Name)
+    "[DONE] Environment $Name is disabled."
 }

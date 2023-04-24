@@ -56,10 +56,13 @@ class EnvironmentHandle {
     }
     
     [bool]IsActive(){
+        Write-Error "IsActive"
         $module = Get-Module $this.GetName()
         if ($module){
             $module_path = $module.Path.ToString()
             $this_env_path = $this.GetModulePath().ToString()
+            Write-Error "[IsActive] module_path: $module_path"
+            Write-Error "[IsActive] this_env_path: $this_env_path"
             return $module_path -eq $this_env_path
         }
         return $false
@@ -72,7 +75,6 @@ class EnvironmentHandle {
         }
         
         # Check that nothing is imported
-        
         if($(Get-Module $this.GetName()))
         {   # Something with this name is imported! Let's check what
             if(!$this.IsActive()){
