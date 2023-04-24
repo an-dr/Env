@@ -134,7 +134,7 @@ function Disable-Environment($Name){
     }
     
     if (!$Name){
-        "[ERROR] The name is not provided."
+        "[ERROR] The name is not provided. Curretly active environments:"
         return Get-Environment
     }
     
