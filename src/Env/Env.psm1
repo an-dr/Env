@@ -15,9 +15,6 @@
 . $PSScriptRoot/FindTools.ps1
 
 
-
-
-
 <#
 .SYNOPSIS
 Returns a table with all active environments

@@ -1,21 +1,17 @@
-# It is a basic Env template. Modify it as you want. All functions and variables will be accessible after
-# environment activation via:
+# *************************************************************************
 #
-# `Enable-Environment $EnvironmentName`
+# Copyright (c) 2023 Andrei Gramakov. All rights reserved.
 #
-# For more information see: https://github.com/an-dr/Env
+# This file is licensed under the terms of the MIT license.  
+# For a copy, see: https://opensource.org/licenses/MIT
+#
+# site:    https://agramakov.me
+# e-mail:  mail@agramakov.me
+#
+# *************************************************************************
 
-$Greeting = "Hello"
-
-function Hello([string]$What) {
-    if(!$What)
-    {
-        $What = "World"
-    }
-    "$Greeting $What!"
+function Publish-Env{
+    Publish-Module -Path $PSScriptRoot/.. -NuGetApiKey $MyNuGetApiKey
 }
 
-
-# Make all Functions and Variables public
-# More info: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/export-modulemember
 Export-ModuleMember -Function * -Variable *

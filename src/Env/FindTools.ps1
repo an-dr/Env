@@ -19,7 +19,7 @@ Test is the directory contains an environment
 .PARAMETER Dir
 Input directory
 #>
-function [bool]Test-DirIsEnv($Dir) {
+function Test-DirIsEnv($Dir) {
     $env_q = [EnvironmentHandle]::New($Dir)
     return $env_q.IsValid()
 }
