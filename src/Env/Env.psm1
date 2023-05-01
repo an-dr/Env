@@ -30,10 +30,14 @@ Creates a new environment and returns a DirectoryInfo object
 
 .PARAMETER Name
 Name of the a environment
+
+.PARAMETER $Path
+In which directory the environment will be created
 #>
-function New-Environment ($Name) {
+function New-Environment ($Name, $Path) {
     if (!$Name) { $Name = [EnvironmentHandle]::DefaultEnvDirName }
-    $env = [EnvironmentHandle]::new($Name)
+    if (!$Path) { $Path = Get-Location }
+    $env = [EnvironmentHandle]::new($(Join-Path $Path $Name))
     $env.Build()
     return $env.EnvironmentLocation
 }

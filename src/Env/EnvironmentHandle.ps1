@@ -18,7 +18,6 @@ class EnvironmentHandle {
     [System.IO.DirectoryInfo] $EnvironmentLocation
     
     EnvironmentHandle([String] $EnvironmentLocation) {
-        [Environment]::CurrentDirectory = $pwd
         $this.EnvironmentLocation = [System.IO.Path]::GetFullPath("$EnvironmentLocation")
     }
     

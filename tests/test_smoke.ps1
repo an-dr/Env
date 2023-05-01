@@ -14,9 +14,8 @@ function Teardown {
 }
 
 function Test-Smoke {
-    New-Item $WorkingDir -ItemType Directory
-    Set-Location $WorkingDir
-    New-Environment $TesEnvName
+    New-Item $WorkingDir -ItemType Directory -Force
+    New-Environment $TesEnvName $WorkingDir
     
     Enable-Environment "$WorkingDir/$TesEnvName"
     

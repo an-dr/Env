@@ -10,8 +10,16 @@
 #
 # *************************************************************************
 
+$EnvRepoRoot = Resolve-Path "$PSScriptRoot/.."
+$EnvModulePath = Join-Path $(Join-Path $EnvRepoRoot "src") "Env"
+$EnvTestsPath = Join-Path $EnvRepoRoot "tests"
+
 function Publish-Env{
-    Publish-Module -Path $PSScriptRoot/../src/Env -NuGetApiKey $MyNuGetApiKey
+    Publish-Module -Path $EnvModulePath -NuGetApiKey $MyNuGetApiKey
+}
+
+function Test-Env{
+    . $EnvTestsPath/test_smoke.ps1
 }
 
 Export-ModuleMember -Function * -Variable *
