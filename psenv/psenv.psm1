@@ -15,7 +15,7 @@ $EnvModulePath = Join-Path $(Join-Path $EnvRepoRoot "src") "Env"
 $EnvTestsPath = Join-Path $EnvRepoRoot "tests"
 
 function Publish-Env{
-    Publish-Module -Path $EnvModulePath -NuGetApiKey $MyNuGetApiKey
+    Publish-Module -Path $EnvModulePath -NuGetApiKey $MyNuGetApiKey -Verbose
 }
 
 function Test-Env{
