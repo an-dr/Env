@@ -27,12 +27,13 @@ function Test-DirIsEnv($Dir) {
 
 function Find-EnvironmentsInDirectory($Path) {
     if (!$Path){ $Path = Get-Location }
+    if ($Path.FullName) { $Path = $Path.FullName }
     $cur_dir = Get-ChildItem $Path -Directory
     
     [System.Collections.ArrayList]$FoundEnvironmens = @()
     
     foreach ($d in $cur_dir){
-        $env_q = [EnvironmentHandle]::New($d)
+        $env_q = [EnvironmentHandle]::New($d.FullName)
         if ($env_q.IsValid()){
             $FoundEnvironmens.Add($env_q) > $null
         } 
@@ -49,8 +50,8 @@ function Find-EnvironmentsInBranch($Path) {
     $LocationsToCheck.Add($cur_dir)  > $null
     
     # Add all parents above the current directory
-    while ("$cur_dir" -ne "$($(Get-Location).Drive.Root)") {
-        $cur_dir = $cur_dir.parent
+    while ("$($cur_dir.FullName)" -ne "$($(Get-Location).Drive.Root)") {
+        $cur_dir = $cur_dir.Parent
         $LocationsToCheck.Add($cur_dir) > $null
     }
     
