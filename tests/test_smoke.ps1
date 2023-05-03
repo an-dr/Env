@@ -40,6 +40,16 @@ function Test-Smoke {
     Disable-Environment $TesEnvName
     popd 
     
+        
+    # Enable-Environment with a relative path (check unfolding the of the path )
+    pushd $WorkingDir
+    Enable-Environment $TesEnvName
+    $result = $(Get-Environment).Values
+    if ($result.Replace("\", "/") -ne "$WorkingDir/$TesEnvName/$TesEnvName.psm1".Replace("\", "/")) {
+        return "result -ne $WorkingDir/$TesEnvName/$TesEnvName.psm1"}
+    Disable-Environment $TesEnvName
+    popd 
+    
     # Check if clean
     $result = $(Get-Environment).Values
     if ($result -ne $null) {return "result -ne $null"}
