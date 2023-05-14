@@ -16,11 +16,17 @@ Install-Module -Name Env
 
 The module consists of functions:
 
-- `New-Environment`
-- `Enable-Environment`
-- `Disable-Environment`
-- `Get-Environment`
-- `Test-DirIsEnv`
+- Basic operations:
+    - `New-Environment`
+    - `Enable-Environment`
+    - `Disable-Environment`
+    - `Get-Environment`
+    - `Get-EnvironmentId`
+    - `Test-DirIsEnv`
+- Module management:
+    - `Add-EnvironmentModule`
+    - `Remove-EnvironmentModule`
+    - `Get-EnvironmentModules`
 
 The default environment name `psenv` is used when the name is not provided.
 
@@ -42,7 +48,7 @@ For a copy, see: [LICENSE](LICENSE)
 
 ## Support
 
-If you will decide to sopport me, you can send some pretty words on my email or just use the link
+If you will decide to support me, you can send some pretty words on my email or just use the link
 
 [Buy me a cup of tea](https://paypal.me/4ndr/1eur)
 

@@ -14,7 +14,7 @@
 class EnvironmentHandle {
     static $DefaultEnvDirName = "psenv"
     static $DefaultEnvModule = "psenv/psenv.psm1"
-    static $DefaultModuleDirName = ".modules"
+    static $DefaultModuleDirName = "modules"
     static $DefaultIdFileName = "id"
     
     [System.IO.DirectoryInfo] $EnvironmentLocation
@@ -115,10 +115,10 @@ class EnvironmentHandle {
     }
     
     [void]UnloadModules(){
-        if (!$this.EnabledGUID) {
-            throw "Something is wrong! No GUID for activated environment!"
+        $modules = Get-Module | Where-Object { $_.Prefix -eq $this.GetPrefix() }
+        foreach ($m in $modules) {
+            Remove-Module $m
         }
-        Get-Module posh-git | Where-Object { $_.Prefix -eq $this.GetPrefix() }
     }
     
     [void]Enable(){
@@ -143,7 +143,6 @@ class EnvironmentHandle {
         if($this.IsActive()){
             $this.UnloadModules()
             Remove-Module $this.GetName()
-            $this.EnabledGUID = $null
         }
     }
     

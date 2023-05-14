@@ -144,13 +144,9 @@ function Disable-Environment($Name){
         return
     }
     
-    $module = Get-Module $Name
-    if ($module){
-        Remove-Module $Name -Force
-    } else{
-        "[WARNING] Environment is in the registry, but not enabled. `
-        Probably disabled using Remove-Module."
-    }
+    $e_path = [EnvironmentRegistry]::GetPsm1Root($Name)
+    $e = [EnvironmentHandle]::New($e_path)
+    $e.Disable()
     
     [EnvironmentRegistry]::Remove($Name)
     "[DONE] Environment $Name is disabled."
@@ -174,7 +170,6 @@ function Remove-EnvironmentModule ($EnvironmentPath, $Module) {
         return
     }
     $imported = Get-Module $Module | Where-Object { $_.Prefix -eq $this.GetName() }
-    
     Remove-Item $(Join-Path "$modules_dir" "$Module") -Recurse -Force
     
 }
