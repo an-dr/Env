@@ -104,7 +104,7 @@ function Enable-Environment {
     
     "[INFO] Enabling environment: $($env_info.EnvironmentLocation)"
     $env_info.Enable()
-    [EnvironmentRegistry]::Add($env_name, $env_info.GetModulePath())
+    [EnvironmentRegistry]::Add($env_name, $env_info.GetMainModulePath())
     "[DONE] Environment $env_name is enabled."
 }
 
@@ -154,4 +154,27 @@ function Disable-Environment($Name){
     
     [EnvironmentRegistry]::Remove($Name)
     "[DONE] Environment $Name is disabled."
+}
+
+
+function Add-EnvironmentModule ($EnvironmentPath, $Module) {
+    $e = [EnvironmentHandle]::New($EnvironmentPath.Directory)
+    if (!$e.IsValid()){
+        "[ERROR] Not an environment."
+        return
+    }
+    New-Item $e.GetModulesDir() -Force -ItemType Directory
+    Save-Module $Module -Path $e.GetModulesDir()
+}
+
+function Remove-EnvironmentModule ($EnvironmentPath, $Module) {
+    $e = [EnvironmentHandle]::New($EnvironmentPath.Directory)
+    if (!$e.IsValid()){
+        "[ERROR] Not an environment."
+        return
+    }
+    $imported = Get-Module $Module | Where-Object { $_.Prefix -eq $this.GetName() }
+    
+    Remove-Item $(Join-Path "$modules_dir" "$Module") -Recurse -Force
+    
 }
