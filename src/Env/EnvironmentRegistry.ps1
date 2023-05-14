@@ -61,9 +61,7 @@ class EnvironmentRegistry {
         if (!$psm1_path){
             return ""
         }
-        
-        $psm1_item = Get-Item $psm1_path
-        return $psm1_item.Parent
+        return Split-Path $psm1_path -Parent
     }
     
 }
