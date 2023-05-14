@@ -158,7 +158,7 @@ function Disable-Environment($Name){
 
 
 function Add-EnvironmentModule ($EnvironmentPath, $Module) {
-    $e = [EnvironmentHandle]::New($EnvironmentPath.Directory)
+    $e = [EnvironmentHandle]::New($EnvironmentPath)
     if (!$e.IsValid()){
         "[ERROR] Not an environment."
         return
@@ -168,7 +168,7 @@ function Add-EnvironmentModule ($EnvironmentPath, $Module) {
 }
 
 function Remove-EnvironmentModule ($EnvironmentPath, $Module) {
-    $e = [EnvironmentHandle]::New($EnvironmentPath.Directory)
+    $e = [EnvironmentHandle]::New($EnvironmentPath)
     if (!$e.IsValid()){
         "[ERROR] Not an environment."
         return
@@ -177,4 +177,19 @@ function Remove-EnvironmentModule ($EnvironmentPath, $Module) {
     
     Remove-Item $(Join-Path "$modules_dir" "$Module") -Recurse -Force
     
+}
+
+function Get-EnvironmentModules ($EnvironmentPath) {
+    $e = [EnvironmentHandle]::New($EnvironmentPath)
+    if (!$e.IsValid()){
+        "[ERROR] Not an environment."
+        return
+    }
+    return $e.GetModules()
+}
+
+function Get-EnvironmentId ($Environment){
+    $env_path = [EnvironmentRegistry]::GetPsm1Root($Environment)
+    $e = [EnvironmentHandle]::New($env_path)
+    return $e.GetGuid()
 }
