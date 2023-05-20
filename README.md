@@ -1,6 +1,6 @@
 # Env
 
-<img src="assets/logo.png" width="250">
+<img src="docs/README/logo.png" width="250">
 
 Powershell module using Create and Enable/Disable local modules with a specific format called Environments. Use it if you you want to implement some functionality applicable only for a specific location, e.g. a function `Organize-PhotosByDate` that can be stored in your `Photos` directory.
 
@@ -28,6 +28,7 @@ The module consists of functions:
     - `Remove-EnvironmentModule`
     - `Get-EnvironmentModules`
 
+
 The default environment name `psenv` is used when the name is not provided.
 
 The suggested workflow is following:
@@ -36,6 +37,15 @@ The suggested workflow is following:
 2. **Modify** you environment in the newly created folder as you wish
 3. **Activate** the environment when you need it using `Enable-Environment`. You CAN activate several environments with unique names at once
 4. **Deactivate** an environment using `Disable-Environment`. To get list of all activate environments use `Get-Environment`
+
+## Examples 
+
+|How to...| Demo |
+|---      |------|
+|...create a new environment|<img src="docs/README/demo_new_environment.gif" width="700">|
+|...add a new module to the environment| <img src="docs/README/demo_add_environmentmodule.gif" width="700">|
+|...enable and disable the environment|<img src="docs/README/demo_enable_environment.gif" width="700">|
+
 
 ## License
 
