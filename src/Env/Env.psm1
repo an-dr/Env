@@ -82,7 +82,14 @@ function Enable-Environment {
     
     if (!$Path){
         $envs = Find-EnvironmentsInBranch
-        $Path = Select-Environment $envs
+        if($envs){
+            $Path = Select-Environment $envs
+        }
+        if(!$Path)
+        {
+            "[ERROR] No environment found"
+            return
+        }
         "[INFO] Selected: $Path"
     }
     
@@ -104,7 +111,7 @@ function Enable-Environment {
     
     "[INFO] Enabling environment: $($env_info.EnvironmentLocation)"
     $env_info.Enable()
-    [EnvironmentRegistry]::Add($env_name, $env_info.GetModulePath())
+    [EnvironmentRegistry]::Add($env_name, $env_info.GetMainModulePath())
     "[DONE] Environment $env_name is enabled."
 }
 
@@ -144,14 +151,47 @@ function Disable-Environment($Name){
         return
     }
     
-    $module = Get-Module $Name
-    if ($module){
-        Remove-Module $Name -Force
-    } else{
-        "[WARNING] Environment is in the registry, but not enabled. `
-        Probably disabled using Remove-Module."
-    }
+    $e_path = [EnvironmentRegistry]::GetPsm1Root($Name)
+    $e = [EnvironmentHandle]::New($e_path)
+    $e.Disable()
     
     [EnvironmentRegistry]::Remove($Name)
     "[DONE] Environment $Name is disabled."
+}
+
+
+function Add-EnvironmentModule ($EnvironmentPath, $Module) {
+    $e = [EnvironmentHandle]::New($EnvironmentPath)
+    if (!$e.IsValid()){
+        "[ERROR] Not an environment."
+        return
+    }
+    New-Item $e.GetModulesDir() -Force -ItemType Directory
+    Save-Module $Module -Path $e.GetModulesDir()
+}
+
+function Remove-EnvironmentModule ($EnvironmentPath, $Module) {
+    $e = [EnvironmentHandle]::New($EnvironmentPath)
+    if (!$e.IsValid()){
+        "[ERROR] Not an environment."
+        return
+    }
+    $imported = Get-Module $Module | Where-Object { $_.Prefix -eq $this.GetName() }
+    Remove-Item $(Join-Path "$modules_dir" "$Module") -Recurse -Force
+    
+}
+
+function Get-EnvironmentModules ($EnvironmentPath) {
+    $e = [EnvironmentHandle]::New($EnvironmentPath)
+    if (!$e.IsValid()){
+        "[ERROR] Not an environment."
+        return
+    }
+    return $e.GetModules()
+}
+
+function Get-EnvironmentId ($Environment){
+    $env_path = [EnvironmentRegistry]::GetPsm1Root($Environment)
+    $e = [EnvironmentHandle]::New($env_path)
+    return $e.GetGuid()
 }

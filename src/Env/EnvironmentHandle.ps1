@@ -14,8 +14,11 @@
 class EnvironmentHandle {
     static $DefaultEnvDirName = "psenv"
     static $DefaultEnvModule = "psenv/psenv.psm1"
+    static $DefaultModuleDirName = "modules"
+    static $DefaultIdFileName = "id"
     
     [System.IO.DirectoryInfo] $EnvironmentLocation
+    $LoadedModules = @{}
     
     EnvironmentHandle([String] $EnvironmentLocation) {
         [Environment]::CurrentDirectory = $pwd
@@ -30,10 +33,22 @@ class EnvironmentHandle {
         return $this.EnvironmentLocation.BaseName
     }
     
-    [string]GetModulePath(){
+    [string]GetMainModulePath(){
         $file_name = "$($this.GetName()).psm1"
         $path = Join-Path $this.EnvironmentLocation $file_name
         return "$path"
+    }
+    
+    [string]GetModulesDir(){
+        return Join-Path $this.EnvironmentLocation $([EnvironmentHandle]::DefaultModuleDirName)
+    }
+    
+    [System.Object]GetModules(){
+        return Get-ChildItem $this.GetModulesDir()
+    }
+    
+    [string]GetPrefix(){
+        return "$($this.GetName())$($this.GetShortGuid())_"
     }
     
     [void]Build(){
@@ -45,14 +60,37 @@ class EnvironmentHandle {
                  -Path $this.EnvironmentLocation `
                  -ErrorAction SilentlyContinue
                  
-        $new_env_file = New-Item -ItemType File -Path $this.GetModulePath()
+        $new_env_file = New-Item -ItemType File -Path $this.GetMainModulePath()
         $template_tile = Join-Path $PSScriptRoot $([EnvironmentHandle]::DefaultEnvModule)
         $init_ps1_content = Get-Content $template_tile -Raw
         Add-Content $new_env_file $init_ps1_content
+        
+    }
+    
+    [void]GenerateGuid(){
+        $id_path = Join-Path $this.EnvironmentLocation $([EnvironmentHandle]::DefaultIdFileName)
+        if(!$(Test-Path $id_path)){
+            New-Item -ItemType File -Path $id_path
+        }
+        Set-Content $id_path $([guid]::NewGuid())
+    }
+    
+    # Automativaly generate ID if not set
+    [string]GetGuid(){
+        $id_path = Join-Path $this.EnvironmentLocation $([EnvironmentHandle]::DefaultIdFileName)
+        if(!$(Test-Path $id_path)){
+            $this.GenerateGuid()
+        }
+        $id_raw = Get-Content $id_path
+        return $id_raw.Trim()
+    }
+    
+    [string]GetShortGuid(){
+        return $($this.GetGuid()).SubString(0,8)
     }
     
     [bool]IsValid(){
-        return Test-Path $($this.GetModulePath())
+        return Test-Path $($this.GetMainModulePath())
     }
     
     [bool]IsActive(){
@@ -60,12 +98,27 @@ class EnvironmentHandle {
         $module = Get-Module $this.GetName()
         if ($module){
             $module_path = $module.Path.ToString()
-            $this_env_path = $this.GetModulePath().ToString()
+            $this_env_path = $this.GetMainModulePath().ToString()
             Write-Error "[IsActive] module_path: $module_path"
             Write-Error "[IsActive] this_env_path: $this_env_path"
             return $module_path -eq $this_env_path
         }
         return $false
+    }
+    
+    [void]LoadModules(){
+        $module_list = $this.GetModules()
+        foreach ($module in $module_list) {
+            $module = import-module $module -Prefix $this.GetPrefix() -PassThru -Global
+        }
+        
+    }
+    
+    [void]UnloadModules(){
+        $modules = Get-Module | Where-Object { $_.Prefix -eq $this.GetPrefix() }
+        foreach ($m in $modules) {
+            Remove-Module $m
+        }
     }
     
     [void]Enable(){
@@ -82,11 +135,13 @@ class EnvironmentHandle {
                 return
             }
         }
-        Import-Module $($this.GetModulePath()) -Scope Global
+        Import-Module $($this.GetMainModulePath()) -Scope Global
+        $this.LoadModules()
     }
     
     [void]Disable(){
         if($this.IsActive()){
+            $this.UnloadModules()
             Remove-Module $this.GetName()
         }
     }
@@ -98,24 +153,3 @@ class EnvironmentHandle {
         }
     }
 }
-
-# cd C:\Users\dongr\Desktop
-# "Create an env"
-# $e_test = [EnvironmentHandle]::new("test")
-# $e_test.Build()
-
-# "e_test.IsActive() - should be false:"
-# $e_test.IsActive()
-
-# "> Enable!"
-# $e_test.Enable()
-
-# "e_test.IsActive() - should be true:"
-# $e_test.IsActive()
-
-# "> Disable!"
-# $e_test.Disable()
-# "e_test.IsActive() - should be false:"
-# $e_test.IsActive()
-
-# $e_test.Clear()
