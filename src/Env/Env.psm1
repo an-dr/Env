@@ -82,7 +82,14 @@ function Enable-Environment {
     
     if (!$Path){
         $envs = Find-EnvironmentsInBranch
-        $Path = Select-Environment $envs
+        if($envs){
+            $Path = Select-Environment $envs
+        }
+        if(!$Path)
+        {
+            "[ERROR] No environment found"
+            return
+        }
         "[INFO] Selected: $Path"
     }
     
